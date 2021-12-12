@@ -42,6 +42,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConsumerTest.cs" />
     <Compile Include="ObjectParserTest.cs" />
     <Compile Include="RelationalMapperExtensionTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
