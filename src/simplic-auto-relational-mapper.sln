@@ -7,6 +7,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simplic.AutoRelationalMappe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simplic.AutoRelationalMapper.Test", "Simplic.AutoRelationalMapper.Test\Simplic.AutoRelationalMapper.Test.csproj", "{37F51A7E-FE59-4656-A7ED-4AD5766B62DA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ENV", "ENV", "{EC018D4B-41D6-44CD-952E-2B754A03D2EE}"
+	ProjectSection(SolutionItems) = preProject
+		..\.gitignore = ..\.gitignore
+		..\azure-pipelines.yml = ..\azure-pipelines.yml
+		..\documentation_config.json = ..\documentation_config.json
+		..\LICENSE = ..\LICENSE
+		..\README.md = ..\README.md
+		..\release-notes.xml = ..\release-notes.xml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
