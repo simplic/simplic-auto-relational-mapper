@@ -61,6 +61,20 @@ namespace Simplic.AutoRelationalMapper
 
                     var statement = $"INSERT INTO {configuration.Table} ({{0}}) ON EXISTING UPDATE VALUES ({{1}})";
 
+                    void addColumn(string _columnName, object _value)
+                    {
+                        parameter.Add(_columnName, _value);
+
+                        if (columnNames.Length != 0)
+                            columnNames.Append(", ");
+
+                        if (parameterNames.Length != 0)
+                            parameterNames.Append(", ");
+
+                        columnNames.Append(_columnName);
+                        parameterNames.Append($":{_columnName}");
+                    };
+
                     if (currentObj is IDictionary<string, object> addon)
                     {
                         var columns = sqlColumnService.GetColumns(configuration.Table, "default");
@@ -75,16 +89,7 @@ namespace Simplic.AutoRelationalMapper
 
                             if (columns.Any(x => x.Key.ToLower() == columnName.ToLower()))
                             {
-                                parameter.Add(columnName, kvp.Value);
-
-                                if (columnNames.Length != 0)
-                                    columnNames.Append(", ");
-
-                                if (parameterNames.Length != 0)
-                                    parameterNames.Append(", ");
-
-                                columnNames.Append(columnNames);
-                                parameterNames.Append($":{columnName}");
+                                addColumn(columnName, kvp.Value);
                             }
                         }
                     }
@@ -96,16 +101,7 @@ namespace Simplic.AutoRelationalMapper
                         {
                             var value = GetValue(obj, column.Key);
 
-                            parameter.Add(column.Value, value);
-
-                            if (columnNames.Length != 0)
-                                columnNames.Append(", ");
-
-                            if (parameterNames.Length != 0)
-                                parameterNames.Append(", ");
-
-                            columnNames.Append(column.Value);
-                            parameterNames.Append($":{column.Value}");
+                            addColumn(column.Value, column.Value);
                         }
                     }
 
@@ -122,16 +118,7 @@ namespace Simplic.AutoRelationalMapper
                             if (configuration.ColumnMapping.ContainsKey(columnName))
                                 columnName = configuration.ColumnMapping[columnName];
 
-                            parameter.Add(columnName, value);
-
-                            if (columnNames.Length != 0)
-                                columnNames.Append(", ");
-
-                            if (parameterNames.Length != 0)
-                                parameterNames.Append(", ");
-
-                            columnNames.Append(columnNames);
-                            parameterNames.Append($":{columnName}");
+                            addColumn(columnName, value);
                         }
                         else
                         { 
