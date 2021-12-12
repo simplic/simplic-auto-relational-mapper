@@ -4,6 +4,7 @@ using Simplic.Sql;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Simplic.AutoRelationalMapper
@@ -54,30 +55,115 @@ namespace Simplic.AutoRelationalMapper
 
                     var configuration = configurations.FirstOrDefault(x => x.Type == currentObj.GetType());
 
+                    var parameter = new DynamicParameters();
+                    var columnNames = new StringBuilder();
+                    var parameterNames = new StringBuilder();
+
+                    var statement = $"INSERT INTO {configuration.Table} ({{0}}) ON EXISTING UPDATE VALUES ({{1}})";
+
                     if (currentObj is IDictionary<string, object> addon)
                     {
-                        lastObjects.TryGetValue(configuration.Owner, out object owner);
+                        var columns = sqlColumnService.GetColumns(configuration.Table, "default");
 
-                        if (owner != null)
+                        foreach (var kvp in addon)
                         {
-                            // Set owner foreign-key-value
+                            var columnName = kvp.Key;
 
-                            foreach (var foreignKey in configuration.ForeignKeys)
+                            // Try get column name mapping
+                            if (configuration.ColumnMapping.ContainsKey(columnName))
+                                columnName = configuration.ColumnMapping[columnName];
+
+                            if (columns.Any(x => x.Key.ToLower() == columnName.ToLower()))
                             {
+                                parameter.Add(columnName, kvp.Value);
 
+                                if (columnNames.Length != 0)
+                                    columnNames.Append(", ");
+
+                                if (parameterNames.Length != 0)
+                                    parameterNames.Append(", ");
+
+                                columnNames.Append(columnNames);
+                                parameterNames.Append($":{columnName}");
                             }
                         }
                     }
                     else
                     {
-                        var columns = sqlColumnService.GetModelDBColumnNames(configuration.Table, configuration.Type, null);
-                        var statement = $"INSERT INTO {configuration.Table} ({{0}}) ON EXISTING UPDATE VALUES ({{1}})";
+                        var columns = sqlColumnService.GetModelDBColumnNames(configuration.Table, configuration.Type, configuration.ColumnMapping);
 
-                        // Write to database
-                        await c.ExecuteAsync(statement, currentObj);
+                        foreach (var column in columns)
+                        {
+                            var value = GetValue(obj, column.Key);
+
+                            parameter.Add(column.Value, value);
+
+                            if (columnNames.Length != 0)
+                                columnNames.Append(", ");
+
+                            if (parameterNames.Length != 0)
+                                parameterNames.Append(", ");
+
+                            columnNames.Append(column.Value);
+                            parameterNames.Append($":{column.Value}");
+                        }
                     }
+
+                    foreach (var foreignKey in configuration.ForeignKeys)
+                    {
+                        // Try to find the last object (parent) that is the parent of the actual object
+                        if (lastObjects.TryGetValue(foreignKey.Source, out object parent))
+                        {
+                            // Read value from parent and find correct column name
+                            var columnName = foreignKey.ForeignKeyName;
+                            var value = GetValue(parent, foreignKey.PrimaryKeyName);
+
+                            // Try get column name mapping
+                            if (configuration.ColumnMapping.ContainsKey(columnName))
+                                columnName = configuration.ColumnMapping[columnName];
+
+                            parameter.Add(columnName, value);
+
+                            if (columnNames.Length != 0)
+                                columnNames.Append(", ");
+
+                            if (parameterNames.Length != 0)
+                                parameterNames.Append(", ");
+
+                            columnNames.Append(columnNames);
+                            parameterNames.Append($":{columnName}");
+                        }
+                        else
+                        { 
+                            // TODO: What should happend here?
+                        }
+                    }
+
+                    statement = string.Format(statement, columnNames, parameterNames);
+
+                    // Write to database
+                    await c.ExecuteAsync(statement, parameter);
                 }
             });
+        }
+
+        /// <summary>
+        /// Get a property name
+        /// </summary>
+        /// <param name="obj">Object instance</param>
+        /// <param name="propertyName">Property name</param>
+        /// <returns>Value as object</returns>
+        private object GetValue(object obj, string propertyName)
+        {
+            var type = obj.GetType();
+            var property = type.GetProperties().FirstOrDefault(x => x.Name.ToLower() == propertyName.ToLower());
+
+            if (property == null)
+            {
+                return property.GetValue(obj);
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -86,10 +172,7 @@ namespace Simplic.AutoRelationalMapper
         /// <param name="obj">Object to parse</param>
         /// <param name="stack">Stack to push objects to (reverse-order)</param>
         /// <param name="queue">Queue to enqueue objects to</param>
-        internal void ParseObjects(object obj, Stack<object> stack, Queue<object> queue)
-        {
-            ParseObjects(obj, stack, queue, new List<string>());
-        }
+        internal void ParseObjects(object obj, Stack<object> stack, Queue<object> queue) => ParseObjects(obj, stack, queue, new List<string>());
 
         /// <summary>
         /// Parses objects recursivly and add to stack/queue for writing to database
