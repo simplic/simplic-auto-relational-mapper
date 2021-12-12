@@ -30,6 +30,11 @@ namespace Simplic.AutoRelationalMapper
         IList<ForeignKey> ForeignKeys { get; }
 
         /// <summary>
+        /// Gets or sets a list of alternative column names
+        /// </summary>
+        IDictionary<string, string> ColumnMapping { get; set; }
+
+        /// <summary>
         /// 
         /// </summary>
         bool AutoDelete { get; set; }

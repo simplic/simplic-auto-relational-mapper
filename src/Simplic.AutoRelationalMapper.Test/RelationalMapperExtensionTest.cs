@@ -7,17 +7,6 @@ namespace Simplic.AutoRelationalMapper.Test
 {
     public class RelationalMapperExtensionTest
     {
-        public interface TestClass
-        {
-            Guid Id { get; }
-            TestClass_Second Second { get; set; }
-        }
-
-        public interface TestClass_Second
-        {
-            Guid Id { get; }
-        }
-
         [Fact]
         public void RegisterTable_TestClass_AddPrimaryKey()
         {
@@ -49,6 +38,26 @@ namespace Simplic.AutoRelationalMapper.Test
             Assert.Equal(typeof(TestClass), fk[0].Source);
             Assert.Equal("Id", fk[0].PrimaryKeyName);
             Assert.Equal("ParentId", fk[0].ForeignKeyName);
+        }
+
+        [Fact]
+        public void RegisterTable_TestClass_AddColumnMapping()
+        {
+            var table = new TableConfiguration<TestClass_Second>()
+                .MapColumn("Guid", x => x.Id);
+
+            Assert.Equal("Guid", table.ColumnMapping["Id"]);
+        }
+
+        public interface TestClass
+        {
+            Guid Id { get; }
+            TestClass_Second Second { get; set; }
+        }
+
+        public interface TestClass_Second
+        {
+            Guid Id { get; }
         }
     }
 }

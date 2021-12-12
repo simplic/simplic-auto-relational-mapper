@@ -3,16 +3,14 @@ using Simplic.Sql;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Simplic.AutoRelationalMapper.Test
 {
-    public class ObjectResolverTest
+    public class ObjectParserTest
     {
         [Fact]
-        public void ResolveObjects_Contact_Subtable()
+        public void ParseObjects_Contact_Subtable()
         {
             var contact = GetTestObject();
 
@@ -51,7 +49,7 @@ namespace Simplic.AutoRelationalMapper.Test
                     .ForeignKey("ContactAddressId", (AddressTestClass x) => x.Id);
             }
 
-            protected override ContactTestClass GetObject(ContactSavedCommand @event) => @event.Contact;
+            protected override ContactTestClass GetObject(ContactSavedCommand command) => command.Contact;
         }
 
         private ContactTestClass GetTestObject()
