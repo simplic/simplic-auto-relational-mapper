@@ -52,10 +52,10 @@ steps:
   - task: VSTest@2
     inputs:
       testSelector: testAssemblies
-      testAssemblyVer2: 'src\Simplic.AutoRelationalMapper.Test.dll
+      testAssemblyVer2: '**\Simplic.AutoRelationalMapper.Test.dll
         !**\*TestAdapter.dll
-        !**\obj\**
-        '
+        !**\obj\**'
+
   - task: NuGetCommand@2
     inputs:
       command: pack
