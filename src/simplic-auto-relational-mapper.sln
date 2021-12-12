@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31424.327
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simplic.AutoRelationalMapper", "Simplic.AutoRelationalMapper\Simplic.AutoRelationalMapper.csproj", "{B7E2C1FA-AA22-4AA1-BF98-284B578430A6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simplic.AutoRelationalMapper.Test", "Simplic.AutoRelationalMapper.Test\Simplic.AutoRelationalMapper.Test.csproj", "{37F51A7E-FE59-4656-A7ED-4AD5766B62DA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ENV", "ENV", "{EC018D4B-41D6-44CD-952E-2B754A03D2EE}"
+	ProjectSection(SolutionItems) = preProject
+		..\.gitignore = ..\.gitignore
+		..\azure-pipelines.yml = ..\azure-pipelines.yml
+		..\documentation_config.json = ..\documentation_config.json
+		..\LICENSE = ..\LICENSE
+		..\README.md = ..\README.md
+		..\release-notes.xml = ..\release-notes.xml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B7E2C1FA-AA22-4AA1-BF98-284B578430A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7E2C1FA-AA22-4AA1-BF98-284B578430A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7E2C1FA-AA22-4AA1-BF98-284B578430A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7E2C1FA-AA22-4AA1-BF98-284B578430A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37F51A7E-FE59-4656-A7ED-4AD5766B62DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37F51A7E-FE59-4656-A7ED-4AD5766B62DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37F51A7E-FE59-4656-A7ED-4AD5766B62DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37F51A7E-FE59-4656-A7ED-4AD5766B62DA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {088A6752-0058-4873-A642-45D55ABCC23E}
+	EndGlobalSection
+EndGlobal
