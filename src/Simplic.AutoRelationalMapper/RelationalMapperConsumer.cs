@@ -8,18 +8,32 @@ using System.Threading.Tasks;
 
 namespace Simplic.AutoRelationalMapper
 {
+    /// <summary>
+    /// Base class that can be used to store event/command information in a relational database
+    /// </summary>
+    /// <typeparam name="E">Event/command type</typeparam>
+    /// <typeparam name="T">Root-object type for storing in the database</typeparam>
     public abstract class RelationalMapperConsumer<E, T> : IConsumer<E> where E : class where T : class
     {
         private readonly ISqlService sqlService;
         private readonly ISqlColumnService sqlColumnService;
         private readonly IList<ITableConfiguration> configurations = new List<ITableConfiguration>();
 
+        /// <summary>
+        /// Initialize consumer
+        /// </summary>
+        /// <param name="sqlService">Sql service</param>
+        /// <param name="sqlColumnService">Sql column service</param>
         public RelationalMapperConsumer(ISqlService sqlService, ISqlColumnService sqlColumnService)
         {
             this.sqlService = sqlService;
             this.sqlColumnService = sqlColumnService;
         }
 
+        /// <summary>
+        /// Consume command and store information in the database
+        /// </summary>
+        /// <param name="context">Context instance, containing the data-message</param>
         public async Task Consume(ConsumeContext<E> context)
         {
             var obj = GetObject(context.Message);
