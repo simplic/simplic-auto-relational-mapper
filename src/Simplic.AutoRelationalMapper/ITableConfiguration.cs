@@ -35,7 +35,13 @@ namespace Simplic.AutoRelationalMapper
         IDictionary<string, string> ColumnMapping { get; set; }
 
         /// <summary>
-        /// 
+        /// Gets or sets whether auto-delete is enabled
+        /// <para>
+        /// If auto delete is enabled, the auto-relational-mapper
+        /// will delete all objects of this type, that does not belong
+        /// to the actual collection. Auto delete will only work for sub-data
+        /// that has a foreign-key.
+        /// </para>
         /// </summary>
         bool AutoDelete { get; set; }
 
