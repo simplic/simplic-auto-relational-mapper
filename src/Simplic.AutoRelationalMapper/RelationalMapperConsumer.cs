@@ -121,7 +121,7 @@ namespace Simplic.AutoRelationalMapper
                             addColumn(columnName, value);
                         }
                         else
-                        { 
+                        {
                             // TODO: What should happend here?
                         }
                     }
@@ -145,12 +145,7 @@ namespace Simplic.AutoRelationalMapper
             var type = obj.GetType();
             var property = type.GetProperties().FirstOrDefault(x => x.Name.ToLower() == propertyName.ToLower());
 
-            if (property == null)
-            {
-                return property.GetValue(obj);
-            }
-
-            return null;
+            return property?.GetValue(obj);
         }
 
         /// <summary>
