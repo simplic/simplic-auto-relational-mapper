@@ -59,7 +59,7 @@ steps:
   - task: NuGetCommand@2
     inputs:
       command: pack
-      packagesToPack: src/Simplic.Data**/*.csproj;!src/Simplic.Data.Test/Simplic.Data.Test.csproj
+      packagesToPack: src/Simplic.**/**.csproj;!src/Simplic.**/**.Test.csproj
       configuration: $(buildConfiguration)
       versioningScheme: "off"
 
