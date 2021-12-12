@@ -10,12 +10,12 @@ namespace Simplic.AutoRelationalMapper.Test
         public interface TestClass
         {
             Guid Id { get; }
+            TestClass_Second Second { get; set; }
         }
 
         public interface TestClass_Second
         {
             Guid Id { get; }
-            Guid ParentId { get; }
         }
 
         [Fact]

@@ -41,7 +41,7 @@ namespace Simplic.AutoRelationalMapper
             var stack = new Stack<object>();
             var queue = new Queue<object>();
 
-            ResolveObjects(obj, stack, queue);
+            ParseObjects(obj, stack, queue);
 
             await sqlService.OpenConnection(async (c) =>
             {
@@ -80,46 +80,110 @@ namespace Simplic.AutoRelationalMapper
             });
         }
 
-        private void ResolveObjects(object obj, Stack<object> stack, Queue<object> queue, IList<object> checkedObjects = null)
+        /// <summary>
+        /// Parses objects recursivly and add to stack/queue for writing to database
+        /// </summary>
+        /// <param name="obj">Object to parse</param>
+        /// <param name="stack">Stack to push objects to (reverse-order)</param>
+        /// <param name="queue">Queue to enqueue objects to</param>
+        internal void ParseObjects(object obj, Stack<object> stack, Queue<object> queue)
+        {
+            ParseObjects(obj, stack, queue, new List<string>());
+        }
+
+        /// <summary>
+        /// Parses objects recursivly and add to stack/queue for writing to database
+        /// </summary>
+        /// <param name="obj">Object to parse</param>
+        /// <param name="stack">Stack to push objects to (reverse-order)</param>
+        /// <param name="queue">Queue to enqueue objects to</param>
+        /// <param name="checkedObjects">Already added objects</param>
+        private void ParseObjects(object obj, Stack<object> stack, Queue<object> queue, IList<string> checkedObjects)
         {
             if (obj == null)
                 return;
 
             // Create object cache if not done yet
-            checkedObjects = checkedObjects ?? new List<object>();
-
-            if (checkedObjects.Contains(obj))
-                return;
-
-            // Add to already checked objects to prevent stackoverflow exception
-            checkedObjects.Add(obj);
+            checkedObjects = checkedObjects ?? new List<string>();
 
             var configuration = configurations.FirstOrDefault(x => x.Type == obj.GetType());
 
             if (configuration == null)
                 return;
 
-            if (!stack.Contains(obj))
-                stack.Push(obj);
+            var key = $"{configuration.Table}_{string.Join("_", GetValues(obj, configuration.PrimaryKeys.OrderBy(x => x).ToList()).Select(x => x.Value?.ToString() ?? "<null>"))}";
 
-            if (!queue.Contains(obj))
-                queue.Enqueue(obj);
+            if (checkedObjects.Contains(key))
+                return;
+
+            // Add to already checked objects to prevent stackoverflow exception
+            checkedObjects.Add(key);
+
+            stack.Push(obj);
+            queue.Enqueue(obj);
 
             // Check for possible child stacks
             var properties = obj.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
-                               .Where(x => x.MemberType == System.Reflection.MemberTypes.Property)
-
-                               // Check whether the type is part of the configurations. If an owner is set, the type must match too
-                               .Where(x => configurations.Any(y => x.DeclaringType == y.Type && (y.Owner == null || obj.GetType() == y.Owner)));
+                               .Where(x => x.MemberType == System.Reflection.MemberTypes.Property);
 
             foreach (var property in properties)
             {
-                // Build recursive tree.
-                ResolveObjects(property.GetValue(obj), stack, queue, checkedObjects);
+                var type = property.PropertyType;
+                var value = property.GetValue(obj);
+
+                // Check whether the type is part of the configurations. If an owner is set, the type must match too
+                if (configurations.Any(x => x.Type == type && (x.Owner == null || obj.GetType() == x.Owner)))
+                {
+                    // Build recursive tree.
+                    ParseObjects(property.GetValue(obj), stack, queue, checkedObjects);
+                }
+                else if (value != null && value is System.Collections.IEnumerable enumerable)
+                {
+                    foreach (object item in enumerable)
+                    {
+                        if (item == null)
+                            continue;
+
+                        var itemType = item.GetType();
+
+                        if (configurations.Any(x => x.Type == itemType && (x.Owner == null || obj.GetType() == x.Owner)))
+                        {
+                            // Build recursive tree.
+                            ParseObjects(item, stack, queue, checkedObjects);
+                        }
+                    }
+                }
             }
         }
 
-        protected abstract T GetObject(E @event);
+        /// <summary>
+        /// Get property values as dictionary from an object
+        /// </summary>
+        /// <param name="obj">Object to read properties from</param>
+        /// <param name="properties">List of properties to read</param>
+        /// <returns>Dictionary containing property values as key-value (key = property name / value = property-value)</returns>
+        private IDictionary<string, object> GetValues(object obj, IList<string> properties)
+        {
+            var values = new Dictionary<string, object>();
+
+            foreach (var property in properties)
+            {
+                var propertyInfo = obj.GetType().GetProperties().FirstOrDefault(x => x.Name == property);
+                if (propertyInfo == null)
+                    throw new Exception($"Could not find property `{property}` in `{obj.GetType()}`");
+
+                values[property] = propertyInfo.GetValue(obj);
+            }
+
+            return values;
+        }
+
+        /// <summary>
+        /// Gets the root-object of the command
+        /// </summary>
+        /// <param name="command">Command instance</param>
+        /// <returns>Object to write to database</returns>
+        protected abstract T GetObject(E command);
 
         /// <summary>
         /// Create new table configuration
