@@ -49,6 +49,16 @@ namespace Simplic.AutoRelationalMapper.Test
             Assert.Equal("Guid", table.ColumnMapping["Id"]);
         }
 
+        [Fact]
+        public void RegisterTable_TestClass_SetAutoDelete()
+        {
+            var table = new TableConfiguration<TestClass_Second>()
+                .MapColumn("Guid", x => x.Id)
+                .AutoDelete();
+
+            Assert.True(table.AutoDelete);
+        }
+
         public interface TestClass
         {
             Guid Id { get; }
