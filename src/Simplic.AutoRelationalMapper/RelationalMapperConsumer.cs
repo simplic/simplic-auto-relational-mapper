@@ -121,6 +121,12 @@ namespace Simplic.AutoRelationalMapper
 
         protected abstract T GetObject(E @event);
 
+        /// <summary>
+        /// Create new table configuration
+        /// </summary>
+        /// <typeparam name="TTableObject">Object to map</typeparam>
+        /// <param name="table">Target table name</param>
+        /// <returns>Table configuration instance</returns>
         protected virtual TableConfiguration<TTableObject> MapTable<TTableObject>(string table) where TTableObject : class
         {
             var configuration = new TableConfiguration<TTableObject>
@@ -133,6 +139,13 @@ namespace Simplic.AutoRelationalMapper
             return configuration;
         }
 
+        /// <summary>
+        /// Create new table configuration, with a specific table-parent
+        /// </summary>
+        /// <typeparam name="TTableObject">Object to map</typeparam>
+        /// <typeparam name="TObjectOwner">Table object owner (parent)</typeparam>
+        /// <param name="table">Target table name</param>
+        /// <returns>Table configuration instance</returns>
         protected virtual TableConfiguration<TTableObject> MapTable<TTableObject, TObjectOwner>(string table) where TTableObject : class
         {
             var configuration = new TableConfiguration<TTableObject>

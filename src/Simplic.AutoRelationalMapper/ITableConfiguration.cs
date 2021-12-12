@@ -32,7 +32,7 @@ namespace Simplic.AutoRelationalMapper
         /// <summary>
         /// 
         /// </summary>
-        bool DeleteIfNotExisting { get; set; }
+        bool AutoDelete { get; set; }
 
         /// <summary>
         /// Gets or sets an owner type. The owner type will be used for undefined types,

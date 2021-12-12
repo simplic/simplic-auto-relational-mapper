@@ -23,6 +23,6 @@ namespace Simplic.AutoRelationalMapper
         public IList<ForeignKey> ForeignKeys { get; set; } = new List<ForeignKey>();
 
         /// <inheritdoc />
-        public bool DeleteIfNotExisting { get; set; }
+        public bool AutoDelete { get; set; }
     }
 }
