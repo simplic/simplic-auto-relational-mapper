@@ -22,7 +22,7 @@ namespace Simplic.AutoRelationalMapper
         {
             if (primaryKeyField == null)
                 throw new ArgumentNullException(nameof(primaryKeyField));
-            
+
             cfg.PrimaryKeys.Add(GetMemberName(primaryKeyField));
 
             return cfg;
@@ -67,7 +67,7 @@ namespace Simplic.AutoRelationalMapper
         {
             if (field == null)
                 throw new ArgumentNullException(nameof(field));
-
+            
             string name = GetMemberName(field);
 
             cfg.ColumnMapping[name] = columnName;
