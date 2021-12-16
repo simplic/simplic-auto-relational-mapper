@@ -23,6 +23,9 @@ namespace Simplic.AutoRelationalMapper
         public IList<ForeignKey> ForeignKeys { get; set; } = new List<ForeignKey>();
 
         /// <inheritdoc />
+        public IDictionary<string, string> ColumnMapping { get; set; } = new Dictionary<string, string>();
+
+        /// <inheritdoc />
         public bool AutoDelete { get; set; }
     }
 }

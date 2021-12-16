@@ -4,6 +4,7 @@ using Simplic.Sql;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Simplic.AutoRelationalMapper
@@ -41,7 +42,7 @@ namespace Simplic.AutoRelationalMapper
             var stack = new Stack<object>();
             var queue = new Queue<object>();
 
-            ResolveObjects(obj, stack, queue);
+            ParseObjects(obj, stack, queue);
 
             await sqlService.OpenConnection(async (c) =>
             {
@@ -54,72 +55,200 @@ namespace Simplic.AutoRelationalMapper
 
                     var configuration = configurations.FirstOrDefault(x => x.Type == currentObj.GetType());
 
+                    var parameter = new DynamicParameters();
+                    var columnNames = new StringBuilder();
+                    var parameterNames = new StringBuilder();
+
+                    var statement = $"INSERT INTO {configuration.Table} ({{0}}) ON EXISTING UPDATE VALUES ({{1}})";
+
+                    void addColumn(string _columnName, object _value)
+                    {
+                        parameter.Add(_columnName, _value);
+
+                        if (columnNames.Length != 0)
+                            columnNames.Append(", ");
+
+                        if (parameterNames.Length != 0)
+                            parameterNames.Append(", ");
+
+                        columnNames.Append(_columnName);
+                        parameterNames.Append($":{_columnName}");
+                    };
+
                     if (currentObj is IDictionary<string, object> addon)
                     {
-                        lastObjects.TryGetValue(configuration.Owner, out object owner);
+                        var columns = sqlColumnService.GetColumns(configuration.Table, "default");
 
-                        if (owner != null)
+                        foreach (var kvp in addon)
                         {
-                            // Set owner foreign-key-value
+                            var columnName = kvp.Key;
 
-                            foreach (var foreignKey in configuration.ForeignKeys)
+                            // Try get column name mapping
+                            if (configuration.ColumnMapping.ContainsKey(columnName))
+                                columnName = configuration.ColumnMapping[columnName];
+
+                            if (columns.Any(x => x.Key.ToLower() == columnName.ToLower()))
                             {
-
+                                addColumn(columnName, kvp.Value);
                             }
                         }
                     }
                     else
                     {
-                        var columns = sqlColumnService.GetModelDBColumnNames(configuration.Table, configuration.Type, null);
-                        var statement = $"INSERT INTO {configuration.Table} ({{0}}) ON EXISTING UPDATE VALUES ({{1}})";
+                        var columns = sqlColumnService.GetModelDBColumnNames(configuration.Table, configuration.Type, configuration.ColumnMapping);
 
-                        // Write to database
-                        await c.ExecuteAsync(statement, currentObj);
+                        foreach (var column in columns)
+                        {
+                            var value = GetValue(obj, column.Key);
+
+                            addColumn(column.Value, column.Value);
+                        }
                     }
+
+                    foreach (var foreignKey in configuration.ForeignKeys)
+                    {
+                        // Try to find the last object (parent) that is the parent of the actual object
+                        if (lastObjects.TryGetValue(foreignKey.Source, out object parent))
+                        {
+                            // Read value from parent and find correct column name
+                            var columnName = foreignKey.ForeignKeyName;
+                            var value = GetValue(parent, foreignKey.PrimaryKeyName);
+
+                            // Try get column name mapping
+                            if (configuration.ColumnMapping.ContainsKey(columnName))
+                                columnName = configuration.ColumnMapping[columnName];
+
+                            addColumn(columnName, value);
+                        }
+                        else
+                        {
+                            // TODO: What should happend here?
+                        }
+                    }
+
+                    statement = string.Format(statement, columnNames, parameterNames);
+
+                    // Write to database
+                    await c.ExecuteAsync(statement, parameter);
                 }
             });
         }
 
-        private void ResolveObjects(object obj, Stack<object> stack, Queue<object> queue, IList<object> checkedObjects = null)
+        /// <summary>
+        /// Get a property name
+        /// </summary>
+        /// <param name="obj">Object instance</param>
+        /// <param name="propertyName">Property name</param>
+        /// <returns>Value as object</returns>
+        private object GetValue(object obj, string propertyName)
+        {
+            var type = obj.GetType();
+            var property = type.GetProperties().FirstOrDefault(x => x.Name.ToLower() == propertyName.ToLower());
+
+            return property?.GetValue(obj);
+        }
+
+        /// <summary>
+        /// Parses objects recursivly and add to stack/queue for writing to database
+        /// </summary>
+        /// <param name="obj">Object to parse</param>
+        /// <param name="stack">Stack to push objects to (reverse-order)</param>
+        /// <param name="queue">Queue to enqueue objects to</param>
+        internal void ParseObjects(object obj, Stack<object> stack, Queue<object> queue) => ParseObjects(obj, stack, queue, new List<string>());
+
+        /// <summary>
+        /// Parses objects recursivly and add to stack/queue for writing to database
+        /// </summary>
+        /// <param name="obj">Object to parse</param>
+        /// <param name="stack">Stack to push objects to (reverse-order)</param>
+        /// <param name="queue">Queue to enqueue objects to</param>
+        /// <param name="checkedObjects">Already added objects</param>
+        private void ParseObjects(object obj, Stack<object> stack, Queue<object> queue, IList<string> checkedObjects)
         {
             if (obj == null)
                 return;
 
             // Create object cache if not done yet
-            checkedObjects = checkedObjects ?? new List<object>();
-
-            if (checkedObjects.Contains(obj))
-                return;
-
-            // Add to already checked objects to prevent stackoverflow exception
-            checkedObjects.Add(obj);
+            checkedObjects = checkedObjects ?? new List<string>();
 
             var configuration = configurations.FirstOrDefault(x => x.Type == obj.GetType());
 
             if (configuration == null)
                 return;
 
-            if (!stack.Contains(obj))
-                stack.Push(obj);
+            var key = $"{configuration.Table}_{string.Join("_", GetValues(obj, configuration.PrimaryKeys.OrderBy(x => x).ToList()).Select(x => x.Value?.ToString() ?? "<null>"))}";
 
-            if (!queue.Contains(obj))
-                queue.Enqueue(obj);
+            if (checkedObjects.Contains(key))
+                return;
+
+            // Add to already checked objects to prevent stackoverflow exception
+            checkedObjects.Add(key);
+
+            stack.Push(obj);
+            queue.Enqueue(obj);
 
             // Check for possible child stacks
             var properties = obj.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
-                               .Where(x => x.MemberType == System.Reflection.MemberTypes.Property)
-
-                               // Check whether the type is part of the configurations. If an owner is set, the type must match too
-                               .Where(x => configurations.Any(y => x.DeclaringType == y.Type && (y.Owner == null || obj.GetType() == y.Owner)));
+                               .Where(x => x.MemberType == System.Reflection.MemberTypes.Property);
 
             foreach (var property in properties)
             {
-                // Build recursive tree.
-                ResolveObjects(property.GetValue(obj), stack, queue, checkedObjects);
+                var type = property.PropertyType;
+                var value = property.GetValue(obj);
+
+                // Check whether the type is part of the configurations. If an owner is set, the type must match too
+                if (configurations.Any(x => x.Type == type && (x.Owner == null || obj.GetType() == x.Owner)))
+                {
+                    // Build recursive tree.
+                    ParseObjects(property.GetValue(obj), stack, queue, checkedObjects);
+                }
+                else if (value != null && value is System.Collections.IEnumerable enumerable)
+                {
+                    foreach (object item in enumerable)
+                    {
+                        if (item == null)
+                            continue;
+
+                        var itemType = item.GetType();
+
+                        if (configurations.Any(x => x.Type == itemType && (x.Owner == null || obj.GetType() == x.Owner)))
+                        {
+                            // Build recursive tree.
+                            ParseObjects(item, stack, queue, checkedObjects);
+                        }
+                    }
+                }
             }
         }
 
-        protected abstract T GetObject(E @event);
+        /// <summary>
+        /// Get property values as dictionary from an object
+        /// </summary>
+        /// <param name="obj">Object to read properties from</param>
+        /// <param name="properties">List of properties to read</param>
+        /// <returns>Dictionary containing property values as key-value (key = property name / value = property-value)</returns>
+        private IDictionary<string, object> GetValues(object obj, IList<string> properties)
+        {
+            var values = new Dictionary<string, object>();
+
+            foreach (var property in properties)
+            {
+                var propertyInfo = obj.GetType().GetProperties().FirstOrDefault(x => x.Name == property);
+                if (propertyInfo == null)
+                    throw new Exception($"Could not find property `{property}` in `{obj.GetType()}`");
+
+                values[property] = propertyInfo.GetValue(obj);
+            }
+
+            return values;
+        }
+
+        /// <summary>
+        /// Gets the root-object of the command
+        /// </summary>
+        /// <param name="command">Command instance</param>
+        /// <returns>Object to write to database</returns>
+        protected abstract T GetObject(E command);
 
         /// <summary>
         /// Create new table configuration
